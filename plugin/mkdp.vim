@@ -118,6 +118,8 @@ endif
 
 " if there are any active preview client
 let g:mkdp_clients_active = 0
+" buffers with connected preview clients
+let g:mkdp_preview_buffers = []
 
 function! s:init_command() abort
   command! -buffer MarkdownPreview call mkdp#util#open_preview_page()

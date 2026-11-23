@@ -24,12 +24,12 @@ exports.run = function () {
     })
   }
 
-  const update_clients_active_var = () => {
-    if (Object.values(clients).some(cs => cs.some(c => c.connected))) {
-      plugin.nvim.setVar('mkdp_clients_active', 1)
-    } else {
-      plugin.nvim.setVar('mkdp_clients_active', 0)
-    }
+  const updateActivePreviews = () => {
+    const activeBuffers = Object.keys(clients)
+      .filter(bufnr => clients[bufnr].some(client => client.connected))
+      .map(Number)
+    plugin.nvim.setVar('mkdp_clients_active', activeBuffers.length > 0 ? 1 : 0)
+    plugin.nvim.setVar('mkdp_preview_buffers', activeBuffers)
   }
 
   // http server
@@ -59,8 +59,17 @@ exports.run = function () {
 
     clients[bufnr] = clients[bufnr] || []
     clients[bufnr].push(client)
-    // update vim variable
-    update_clients_active_var();
+    client.on('disconnect', function () {
+      logger.info('client disconnect: ', client.id, bufnr)
+      const remaining = (clients[bufnr] || []).filter(c => c !== client)
+      if (remaining.length) {
+        clients[bufnr] = remaining
+      } else {
+        delete clients[bufnr]
+      }
+      updateActivePreviews()
+    })
+    updateActivePreviews()
 
     const buffers = await plugin.nvim.buffers
     buffers.forEach(async (buffer) => {
@@ -88,13 +97,6 @@ exports.run = function () {
         })
       }
     })
-
-    client.on('disconnect', function () {
-      logger.info('disconnect: ', client.id)
-      clients[bufnr] = (clients[bufnr] || []).map(c => c.id !== client.id)
-      // update vim variable
-      update_clients_active_var();
-    })
   })
 
   async function startServer () {
@@ -117,13 +119,14 @@ exports.run = function () {
       }
       function closePage ({ bufnr }) {
         logger.info('close page: ', bufnr)
-        clients[bufnr] = (clients[bufnr] || []).filter(c => {
+        const pageClients = clients[bufnr] || []
+        delete clients[bufnr]
+        pageClients.forEach(c => {
           if (c.connected) {
             c.emit('close_page')
-            return false
           }
-          return true
         })
+        updateActivePreviews()
       }
       function closeAllPages () {
         logger.info('close all pages')

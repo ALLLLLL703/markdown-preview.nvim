@@ -10,7 +10,11 @@ function! s:on_stderr(chan_id, msgs, ...) abort
   call mkdp#util#echo_messages('Error', a:msgs)
 endfunction
 function! s:on_exit(chan_id, code, ...) abort
-  let s:mkdp_channel_id = s:is_vim ? v:null : -1
+  if a:chan_id is s:mkdp_channel_id
+    let s:mkdp_channel_id = s:is_vim ? v:null : -1
+    let g:mkdp_clients_active = 0
+    let g:mkdp_preview_buffers = []
+  endif
 endfunction
 
 function! s:start_vim_server(cmd) abort
@@ -85,7 +89,8 @@ function! mkdp#rpc#stop_server() abort
     endif
     let s:mkdp_channel_id = -1
   endif
-  let b:MarkdownPreviewToggleBool = 0
+  let g:mkdp_clients_active = 0
+  let g:mkdp_preview_buffers = []
 endfunction
 
 function! mkdp#rpc#get_server_status() abort
@@ -119,7 +124,6 @@ function! mkdp#rpc#preview_close() abort
       call rpcnotify(s:mkdp_channel_id, 'close_page', { 'bufnr': bufnr('%') })
     endif
   endif
-  let b:MarkdownPreviewToggleBool = 0
   call mkdp#autocmd#clear_buf()
 endfunction
 

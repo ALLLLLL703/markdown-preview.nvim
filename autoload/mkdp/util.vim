@@ -61,7 +61,6 @@ function! mkdp#util#open_browser() abort
 endfunction
 
 function! mkdp#util#stop_preview() abort
-  let g:mkdp_clients_active = 0
   " TODO: delete autocmd
   call mkdp#rpc#stop_server()
 endfunction
@@ -185,12 +184,9 @@ function! mkdp#util#pre_build_version() abort
 endfunction
 
 function! mkdp#util#toggle_preview() abort
-    if !get(b:, 'MarkdownPreviewToggleBool')
-        call mkdp#util#open_preview_page()
-        let b:MarkdownPreviewToggleBool=1
-    else
-        call mkdp#util#stop_preview()
-        let b:MarkdownPreviewToggleBool=0
-    endif
+  if index(g:mkdp_preview_buffers, bufnr('%')) == -1
+    call mkdp#util#open_preview_page()
+  else
+    call mkdp#util#stop_preview()
+  endif
 endfunction
-

@@ -95,6 +95,8 @@ export default class PreviewPage extends React.Component {
     this.showThemeButton = this.showThemeButton.bind(this)
     this.hideThemeButton = this.hideThemeButton.bind(this)
     this.handleThemeChange = this.handleThemeChange.bind(this)
+    this.onPageHide = this.onPageHide.bind(this)
+    this.onPageShow = this.onPageShow.bind(this)
   }
 
   handleThemeChange() {
@@ -120,7 +122,10 @@ export default class PreviewPage extends React.Component {
     // Close the previous socket
     const tmpSocket = window.socket
 
-    window.history.replaceState(null, '', `/${bufnr}`)
+    const previewPath = `/page/${bufnr}`
+    if (window.location.pathname !== previewPath) {
+      window.history.replaceState(null, '', previewPath)
+    }
 
     const socket = io({
       query: {
@@ -149,6 +154,24 @@ export default class PreviewPage extends React.Component {
 
   componentDidMount() {
     this.startSocket(parseFloat(window.location.pathname.split('/')[2]))
+    window.addEventListener('pagehide', this.onPageHide)
+    window.addEventListener('pageshow', this.onPageShow)
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('pagehide', this.onPageHide)
+    window.removeEventListener('pageshow', this.onPageShow)
+    this.onPageHide()
+  }
+
+  onPageHide() {
+    window.socket.close()
+  }
+
+  onPageShow(event) {
+    if (event.persisted) {
+      window.socket.open()
+    }
   }
 
   onConnect() {
